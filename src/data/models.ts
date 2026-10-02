@@ -25,18 +25,18 @@ export interface LlmModel {
 
 export const PROVIDER_META: Record<
   Provider,
-  { label: string; color: string }
+  { label: string; color: string; icon: string }
 > = {
-  openai: { label: "OpenAI", color: "#0e9f6e" },
-  anthropic: { label: "Anthropic", color: "#d97757" },
-  xai: { label: "xAI", color: "#111111" },
-  google: { label: "Google", color: "#4285f4" },
-  zai: { label: "Z.AI", color: "#0e9384" },
-  deepseek: { label: "DeepSeek", color: "#7c3aed" },
-  moonshot: { label: "Moonshot", color: "#e5484d" },
-  qwen: { label: "Qwen", color: "#334155" },
-  meta: { label: "Meta", color: "#3e63dd" },
-  xiaomi: { label: "Xiaomi", color: "#ff6900" },
+  openai: { label: "OpenAI", color: "#0e9f6e", icon: "/icons/openai.svg" },
+  anthropic: { label: "Anthropic", color: "#d97757", icon: "/icons/anthropic.svg" },
+  xai: { label: "xAI", color: "#111111", icon: "/icons/x.svg" },
+  google: { label: "Google", color: "#4285f4", icon: "/icons/google.svg" },
+  zai: { label: "Z.AI", color: "#7c3aed", icon: "/icons/zai.svg" },
+  deepseek: { label: "DeepSeek", color: "#0e9384", icon: "/icons/deepseek.svg" },
+  moonshot: { label: "Moonshot", color: "#0f172a", icon: "/icons/kimi.svg" },
+  qwen: { label: "Qwen", color: "#ea580c", icon: "/icons/alibabacloud.svg" },
+  meta: { label: "Meta", color: "#3e63dd", icon: "/icons/meta.svg" },
+  xiaomi: { label: "Xiaomi", color: "#e53935", icon: "/icons/xiaomi.svg" },
 };
 
 /** LLMs only. Dates and names match Artificial Analysis listings. */

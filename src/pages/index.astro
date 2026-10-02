@@ -1,235 +1,236 @@
 ---
 import NumberChart from "../components/NumberChart.astro";
 import {
-  MODELS,
-  MODELS_BY_NUMBER,
-  PROVIDER_META,
-  seriesFor,
-  PROVIDERS,
+    MODELS,
+    MODELS_BY_DATE,
+    MODELS_BY_NUMBER,
+    PROVIDER_META,
+    PROVIDERS,
 } from "../data/models";
 import "../styles/global.css";
 
-const maxNumber = Math.max(...MODELS.map((m) => m.modelNumber));
-const dates = MODELS.map((m) => m.releaseDate).sort();
-const range = `${dates[0].slice(0, 7)} – ${dates[dates.length - 1].slice(0, 7)}`;
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+const shortDate = (iso: string) => {
+  const [y, m, d] = iso.split("-");
+  return `${MONTHS[Number(m) - 1]} ${Number(d)}, ${y}`;
+};
+
+const leader = MODELS_BY_NUMBER[0];
+const latest = MODELS_BY_DATE[MODELS_BY_DATE.length - 1];
+const lab = (m: (typeof MODELS)[number]) => PROVIDER_META[m.provider].label;
 ---
 
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="generator" content={Astro.generator} />
-    <title>ModelNumber — LLM version vs release date</title>
-    <meta
-      name="description"
-      content="Model number on the Y axis, release date on the X axis. Frontier LLM versions tracked over time."
-    />
-  </head>
-  <body class="bg-white text-neutral-900 antialiased">
-    <header class="border-b border-neutral-200">
-      <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-        <a href="/" class="text-lg font-bold tracking-tight">ModelNumber</a>
-        <nav class="flex gap-6 text-sm text-neutral-600">
-          <a href="#chart" class="hover:text-black">Chart</a>
-          <a href="#leaderboard" class="hover:text-black">Leaderboard</a>
-          <a href="#why" class="hover:text-black">Why</a>
-          <a href="#methodology" class="hover:text-black">Methodology</a>
-        </nav>
-      </div>
-    </header>
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="viewport" content="width=device-width" />
+        <meta name="generator" content={Astro.generator} />
+        <title>Nominal</title>
+        <meta
+            name="description"
+            content="Frontier LLMs ranked by the number in their name. Higher is better."
+        />
+    </head>
+    <body class="bg-white text-neutral-900 antialiased">
+        <header class="mx-auto flex max-w-4xl items-center justify-between px-6 pt-6 text-sm">
+            <a href="/" class="text-base font-semibold">
+                Nominal
+            </a>
+            <div class="flex items-center gap-4">
+                <span class="font-mono text-xs text-neutral-500">
+                    last updated {shortDate(latest.releaseDate)}
+                </span>
+                <a
+                    href="https://github.com/jR4dh3y/nominal-bench"
+                    class="flex items-center gap-1.5 text-neutral-600 hover:text-black"
+                    aria-label="GitHub repository"
+                >
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    GitHub
+                </a>
+            </div>
+        </header>
 
-    <main class="mx-auto max-w-5xl px-6">
-      <section class="py-14 text-center">
-        <dl
-          class="mx-auto flex max-w-xl items-start justify-center gap-10 text-sm"
-        >
-          <div>
-            <dt class="font-bold">models</dt>
-            <dd class="text-2xl font-bold">{MODELS.length}</dd>
-          </div>
-          <div>
-            <dt class="font-bold">providers</dt>
-            <dd class="text-2xl font-bold">{PROVIDERS.length}</dd>
-          </div>
-          <div>
-            <dt class="font-bold">range</dt>
-            <dd class="text-2xl font-bold">{range}</dd>
-          </div>
-          <div>
-            <dt class="font-bold">latest</dt>
-            <dd class="text-2xl font-bold">{maxNumber.toFixed(1)}</dd>
-          </div>
-        </dl>
-        <h1 class="mt-8 text-4xl font-bold tracking-tight">
-          Model number vs release date
-        </h1>
-        <p class="mx-auto mt-4 max-w-2xl text-neutral-600">
-          Measuring frontier LLM versioning over time. Model number on the Y
-          axis, release date on the X axis — one line per provider, LLMs only.
-          Release dates and model names match Artificial Analysis listings.
-        </p>
-        <div class="mt-6 flex justify-center gap-3">
-          <a
-            href="#chart"
-            class="rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
-            >View chart</a
-          >
-          <a
-            href="#leaderboard"
-            class="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium"
-            >Leaderboard</a
-          >
-        </div>
-      </section>
+        <main class="mx-auto max-w-4xl px-6">
+            <section class="pt-16 pb-14 text-center">
+                <h1 class="mx-auto max-w-3xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
+                    Nominal: Measuring Version Progress in Frontier Language
+                    Models
+                </h1>
+                <div class="mt-8 flex flex-wrap justify-center gap-2 text-sm">
+                    <a href="#leaderboard" class="rounded-full bg-neutral-900 px-4 py-1.5 text-white hover:bg-neutral-700">
+                        Leaderboard
+                    </a>
+                    <a href="/models.json" class="rounded-full bg-neutral-900 px-4 py-1.5 text-white hover:bg-neutral-700">
+                        Dataset
+                    </a>
+                    <a href="#methodology" class="rounded-full bg-neutral-900 px-4 py-1.5 text-white hover:bg-neutral-700">
+                        Methodology
+                    </a>
+                    <span class="rounded-full bg-neutral-200 px-4 py-1.5 text-neutral-500">
+                        Paper (soon)
+                    </span>
+                </div>
 
-      <section id="chart" class="scroll-mt-8 border-t border-neutral-200 py-12">
-        <h2 class="text-2xl font-bold tracking-tight">Chart</h2>
-        <p class="mt-2 text-sm text-neutral-600">
-          Each dot is a release. Lines connect releases from the same provider.
-        </p>
-        <div class="mt-6">
-          <NumberChart />
-        </div>
-      </section>
+                <div class="mx-auto mt-12 max-w-2xl text-left">
+                    <h2 class="text-center text-lg font-semibold">Abstract</h2>
+                    <p class="mt-3 leading-relaxed text-neutral-700">
+                        We introduce Nominal, a benchmark that
+                        evaluates {MODELS.length} frontier LLMs from{" "}
+                        {PROVIDERS.length} labs on a single, fully
+                        reproducible metric: the version number printed in the
+                        model's name. Unlike existing evaluations,
+                        Nominal is immune to test-set contamination,
+                        requires no inference compute, and yields zero
+                        run-to-run variance. We find that scores have risen
+                        steadily over the evaluation window, with{" "}
+                        {leader.name} establishing a new state of the art at{" "}
+                        {leader.modelNumber.toFixed(1)}.
+                    </p>
+                </div>
 
-      <section
-        id="leaderboard"
-        class="scroll-mt-8 border-t border-neutral-200 py-12"
-      >
-        <h2 class="text-2xl font-bold tracking-tight">Leaderboard</h2>
-        <p class="mt-2 text-sm text-neutral-600">
-          {MODELS.length} models · sorted by model number · LLMs only
-        </p>
-        <div class="mt-6 overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead>
-              <tr class="border-b border-neutral-200 text-neutral-500">
-                <th class="py-2 pr-4 font-medium">#</th>
-                <th class="py-2 pr-4 font-medium">Model</th>
-                <th class="py-2 pr-4 font-medium">Number</th>
-                <th class="py-2 pr-4 font-medium">Release date</th>
-                <th class="py-2 font-medium">Provider</th>
-              </tr>
-            </thead>
-            <tbody>
-              {
-                MODELS_BY_NUMBER.map((m, i) => (
-                  <tr class="border-b border-neutral-100">
-                    <td class="py-3 pr-4 text-neutral-500">{i + 1}</td>
-                    <td class="py-3 pr-4 font-medium">{m.name}</td>
-                    <td class="py-3 pr-4">
-                      <div class="flex items-center gap-2">
-                        <div class="h-2 w-32 overflow-hidden rounded bg-neutral-100">
-                          <div
-                            class="h-full rounded"
-                            style={`width: ${(m.modelNumber / maxNumber) * 100}%; background: ${PROVIDER_META[m.provider].color}`}
-                          />
-                        </div>
-                        <span class="tabular-nums">
-                          {m.modelNumber.toFixed(1)}
-                        </span>
-                      </div>
-                    </td>
-                    <td class="py-3 pr-4 tabular-nums">{m.releaseDate}</td>
-                    <td class="py-3">{PROVIDER_META[m.provider].label}</td>
-                  </tr>
-                ))
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
+            </section>
 
-      <section id="why" class="scroll-mt-8 border-t border-neutral-200 py-12">
-        <h2 class="text-2xl font-bold tracking-tight">
-          Why track model numbers?
-        </h2>
-        <ul class="mt-6 grid gap-6 sm:grid-cols-2">
-          <li>
-            <h3 class="font-bold">Version transparency</h3>
-            <p class="mt-1 text-sm text-neutral-600">
-              Marketing names hide how big a jump a release really is. The
-              number makes it explicit.
-            </p>
-          </li>
-          <li>
-            <h3 class="font-bold">Release cadence</h3>
-            <p class="mt-1 text-sm text-neutral-600">
-              Slope is speed. A steep line means a provider is shipping major
-              versions fast.
-            </p>
-          </li>
-          <li>
-            <h3 class="font-bold">Cross-provider comparison</h3>
-            <p class="mt-1 text-sm text-neutral-600">
-              One axis for time, one for version — every frontier lab on the
-              same plot.
-            </p>
-          </li>
-          <li>
-            <h3 class="font-bold">Reliable reading</h3>
-            <p class="mt-1 text-sm text-neutral-600">
-              Numbers and dates are objective. No benchmark harness, no
-              confidence intervals to argue about.
-            </p>
-          </li>
-        </ul>
-      </section>
+            <section id="chart" class="scroll-mt-8 py-10">
+                <h2 class="text-2xl font-semibold">Over time</h2>
+                <p class="mt-2 text-sm text-neutral-600">
+                    Up is good. Up and to the left is very good. Hover a dot
+                    to see one lab's whole climb.
+                </p>
+                <div class="mt-6">
+                    <NumberChart />
+                </div>
+            </section>
 
-      <section class="border-t border-neutral-200 py-12">
-        <h2 class="text-2xl font-bold tracking-tight">Provider lines</h2>
-        <div class="mt-6 grid gap-4 sm:grid-cols-3">
-          {
-            PROVIDERS.map((p) => (
-              <div class="rounded-lg border border-neutral-200 p-4">
-                <h3 class="font-bold">
-                  <span
-                    class="mr-2 inline-block h-2.5 w-2.5 rounded-full"
-                    style={`background: ${PROVIDER_META[p].color}`}
-                  />
-                  {PROVIDER_META[p].label}
-                </h3>
-                <ol class="mt-3 space-y-1 text-sm text-neutral-600">
-                  {seriesFor(p).map((m) => (
-                    <li class="flex justify-between gap-2">
-                      <span class="font-medium text-neutral-900">{m.name}</span>
-                      <span class="tabular-nums">{m.releaseDate}</span>
+            <section id="leaderboard" class="scroll-mt-8 py-10">
+                <h2 class="text-2xl font-semibold">Leaderboard</h2>
+                <p class="mt-2 text-sm text-neutral-600">
+                    {MODELS.length} models. Ties are broken by nothing; they're
+                    just tied.
+                </p>
+                <div class="mt-6 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-neutral-900 text-neutral-500">
+                                <th class="py-2 pr-4 font-normal">#</th>
+                                <th class="py-2 pr-4 font-normal">Model</th>
+                                <th class="py-2 pr-4 font-normal">Score</th>
+                                <th class="py-2 pr-4 font-normal">Released</th>
+                                <th class="py-2 font-normal">Lab</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {MODELS_BY_NUMBER.map((m, i) => (
+                                <tr class="border-b border-neutral-200">
+                                    <td class="py-2.5 pr-4 font-mono text-neutral-400 tabular-nums">
+                                        {i + 1}
+                                    </td>
+                                    <td class="py-2.5 pr-4 font-medium">
+                                        <span class="flex items-center gap-2">
+                                            <img
+                                                src={PROVIDER_META[m.provider].icon}
+                                                alt=""
+                                                class="h-4 w-4"
+                                            />
+                                            {m.name}
+                                        </span>
+                                    </td>
+                                    <td class="py-2.5 pr-4">
+                                        <div class="flex items-center gap-3">
+                                            <span class="w-8 font-mono tabular-nums">
+                                                {m.modelNumber.toFixed(1)}
+                                            </span>
+                                            <div class="hidden h-1.5 w-28 bg-neutral-200 sm:block">
+                                                <div
+                                                    class="h-full"
+                                                    style={`width: ${(m.modelNumber / leader.modelNumber) * 100}%; background: ${PROVIDER_META[m.provider].color}`}
+                                                />
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 pr-4 font-mono text-neutral-600 tabular-nums">
+                                        {m.releaseDate}
+                                    </td>
+                                    <td class="py-2.5 text-neutral-600">
+                                        <span class="flex items-center gap-2">
+                                            <img
+                                                src={PROVIDER_META[m.provider].icon}
+                                                alt=""
+                                                class="h-4 w-4"
+                                            />
+                                            {lab(m)}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="faq" class="scroll-mt-8 py-10">
+                <h2 class="text-2xl font-semibold">
+                    Questions people have actually asked
+                </h2>
+                <dl class="mt-6 max-w-2xl space-y-6">
+                    <div>
+                        <dt class="font-medium">Isn't this meaningless?</dt>
+                        <dd class="mt-1 text-neutral-600">
+                            Pretty much. But it's reproducible, nobody can
+                            contaminate the test set, and the error bars are
+                            zero.
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">
+                            Why does DeepSeek V4 Pro score the same as V4 Flash?
+                        </dt>
+                        <dd class="mt-1 text-neutral-600">
+                            "Pro" isn't a number. We checked.
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">Can a lab game this?</dt>
+                        <dd class="mt-1 text-neutral-600">
+                            Yes, by renaming the model. That's the only
+                            strategy, and some labs are clearly using it.
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium">Why is Kimi so low?</dt>
+                        <dd class="mt-1 text-neutral-600">
+                            Kimi K3 is a 3. Take it up with Moonshot.
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+
+            <section id="methodology" class="scroll-mt-8 py-10">
+                <h2 class="text-2xl font-semibold">Methodology</h2>
+                <ol class="mt-4 max-w-2xl list-decimal space-y-2 pl-5 text-neutral-600">
+                    <li>Read the model's name.</li>
+                    <li>
+                        Find the number in it. That's the score. GPT-6.1 Sol
+                        gets 6.1, Kimi K3 gets 3.0, and Sol, Astra, Pro, Max
+                        and Flash get nothing.
                     </li>
-                  ))}
+                    <li>
+                        Release dates and names come from Artificial Analysis.
+                        Only LLMs count, so no image or video models.
+                    </li>
                 </ol>
-              </div>
-            ))
-          }
-        </div>
-      </section>
+            </section>
+        </main>
 
-      <section
-        id="methodology"
-        class="scroll-mt-8 border-t border-neutral-200 py-12"
-      >
-        <h2 class="text-2xl font-bold tracking-tight">Methodology</h2>
-        <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-neutral-600">
-          <li>
-            Model names and release dates are taken from Artificial Analysis
-            listings. Only LLMs are included.
-          </li>
-          <li>
-            Model number is the numeric version in the marketing name
-            (GPT-6.1 Sol → 6.1, Opus 5.5 → 5.5, Grok 4.7 → 4.7).
-          </li>
-          <li>Releases from the same provider are connected in date order.</li>
-        </ol>
-      </section>
-    </main>
-
-    <footer class="border-t border-neutral-200">
-      <div
-        class="mx-auto flex max-w-5xl items-center justify-between px-6 py-6 text-sm text-neutral-500"
-      >
-        <span>© 2026 ModelNumber</span>
-        <span>Dates match Artificial Analysis · LLMs only</span>
-      </div>
-    </footer>
-  </body>
+        <footer class="mx-auto max-w-4xl px-6 pt-10 pb-12 text-sm text-neutral-500">
+            Not affiliated with any lab. Every number was checked by hand,
+            which was honestly most of the work.
+        </footer>
+    </body>
 </html>
