@@ -1,17 +1,235 @@
 ---
+import NumberChart from "../components/NumberChart.astro";
+import {
+  MODELS,
+  MODELS_BY_NUMBER,
+  PROVIDER_META,
+  seriesFor,
+  PROVIDERS,
+} from "../data/models";
+import "../styles/global.css";
 
+const maxNumber = Math.max(...MODELS.map((m) => m.modelNumber));
+const dates = MODELS.map((m) => m.releaseDate).sort();
+const range = `${dates[0].slice(0, 7)} – ${dates[dates.length - 1].slice(0, 7)}`;
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>ModelNumber — LLM version vs release date</title>
+    <meta
+      name="description"
+      content="Model number on the Y axis, release date on the X axis. Frontier LLM versions tracked over time."
+    />
+  </head>
+  <body class="bg-white text-neutral-900 antialiased">
+    <header class="border-b border-neutral-200">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+        <a href="/" class="text-lg font-bold tracking-tight">ModelNumber</a>
+        <nav class="flex gap-6 text-sm text-neutral-600">
+          <a href="#chart" class="hover:text-black">Chart</a>
+          <a href="#leaderboard" class="hover:text-black">Leaderboard</a>
+          <a href="#why" class="hover:text-black">Why</a>
+          <a href="#methodology" class="hover:text-black">Methodology</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-6">
+      <section class="py-14 text-center">
+        <dl
+          class="mx-auto flex max-w-xl items-start justify-center gap-10 text-sm"
+        >
+          <div>
+            <dt class="font-bold">models</dt>
+            <dd class="text-2xl font-bold">{MODELS.length}</dd>
+          </div>
+          <div>
+            <dt class="font-bold">providers</dt>
+            <dd class="text-2xl font-bold">{PROVIDERS.length}</dd>
+          </div>
+          <div>
+            <dt class="font-bold">range</dt>
+            <dd class="text-2xl font-bold">{range}</dd>
+          </div>
+          <div>
+            <dt class="font-bold">latest</dt>
+            <dd class="text-2xl font-bold">{maxNumber.toFixed(1)}</dd>
+          </div>
+        </dl>
+        <h1 class="mt-8 text-4xl font-bold tracking-tight">
+          Model number vs release date
+        </h1>
+        <p class="mx-auto mt-4 max-w-2xl text-neutral-600">
+          Measuring frontier LLM versioning over time. Model number on the Y
+          axis, release date on the X axis — one line per provider, LLMs only.
+          Release dates and model names match Artificial Analysis listings.
+        </p>
+        <div class="mt-6 flex justify-center gap-3">
+          <a
+            href="#chart"
+            class="rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
+            >View chart</a
+          >
+          <a
+            href="#leaderboard"
+            class="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium"
+            >Leaderboard</a
+          >
+        </div>
+      </section>
+
+      <section id="chart" class="scroll-mt-8 border-t border-neutral-200 py-12">
+        <h2 class="text-2xl font-bold tracking-tight">Chart</h2>
+        <p class="mt-2 text-sm text-neutral-600">
+          Each dot is a release. Lines connect releases from the same provider.
+        </p>
+        <div class="mt-6">
+          <NumberChart />
+        </div>
+      </section>
+
+      <section
+        id="leaderboard"
+        class="scroll-mt-8 border-t border-neutral-200 py-12"
+      >
+        <h2 class="text-2xl font-bold tracking-tight">Leaderboard</h2>
+        <p class="mt-2 text-sm text-neutral-600">
+          {MODELS.length} models · sorted by model number · LLMs only
+        </p>
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="border-b border-neutral-200 text-neutral-500">
+                <th class="py-2 pr-4 font-medium">#</th>
+                <th class="py-2 pr-4 font-medium">Model</th>
+                <th class="py-2 pr-4 font-medium">Number</th>
+                <th class="py-2 pr-4 font-medium">Release date</th>
+                <th class="py-2 font-medium">Provider</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                MODELS_BY_NUMBER.map((m, i) => (
+                  <tr class="border-b border-neutral-100">
+                    <td class="py-3 pr-4 text-neutral-500">{i + 1}</td>
+                    <td class="py-3 pr-4 font-medium">{m.name}</td>
+                    <td class="py-3 pr-4">
+                      <div class="flex items-center gap-2">
+                        <div class="h-2 w-32 overflow-hidden rounded bg-neutral-100">
+                          <div
+                            class="h-full rounded"
+                            style={`width: ${(m.modelNumber / maxNumber) * 100}%; background: ${PROVIDER_META[m.provider].color}`}
+                          />
+                        </div>
+                        <span class="tabular-nums">
+                          {m.modelNumber.toFixed(1)}
+                        </span>
+                      </div>
+                    </td>
+                    <td class="py-3 pr-4 tabular-nums">{m.releaseDate}</td>
+                    <td class="py-3">{PROVIDER_META[m.provider].label}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="why" class="scroll-mt-8 border-t border-neutral-200 py-12">
+        <h2 class="text-2xl font-bold tracking-tight">
+          Why track model numbers?
+        </h2>
+        <ul class="mt-6 grid gap-6 sm:grid-cols-2">
+          <li>
+            <h3 class="font-bold">Version transparency</h3>
+            <p class="mt-1 text-sm text-neutral-600">
+              Marketing names hide how big a jump a release really is. The
+              number makes it explicit.
+            </p>
+          </li>
+          <li>
+            <h3 class="font-bold">Release cadence</h3>
+            <p class="mt-1 text-sm text-neutral-600">
+              Slope is speed. A steep line means a provider is shipping major
+              versions fast.
+            </p>
+          </li>
+          <li>
+            <h3 class="font-bold">Cross-provider comparison</h3>
+            <p class="mt-1 text-sm text-neutral-600">
+              One axis for time, one for version — every frontier lab on the
+              same plot.
+            </p>
+          </li>
+          <li>
+            <h3 class="font-bold">Reliable reading</h3>
+            <p class="mt-1 text-sm text-neutral-600">
+              Numbers and dates are objective. No benchmark harness, no
+              confidence intervals to argue about.
+            </p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="border-t border-neutral-200 py-12">
+        <h2 class="text-2xl font-bold tracking-tight">Provider lines</h2>
+        <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          {
+            PROVIDERS.map((p) => (
+              <div class="rounded-lg border border-neutral-200 p-4">
+                <h3 class="font-bold">
+                  <span
+                    class="mr-2 inline-block h-2.5 w-2.5 rounded-full"
+                    style={`background: ${PROVIDER_META[p].color}`}
+                  />
+                  {PROVIDER_META[p].label}
+                </h3>
+                <ol class="mt-3 space-y-1 text-sm text-neutral-600">
+                  {seriesFor(p).map((m) => (
+                    <li class="flex justify-between gap-2">
+                      <span class="font-medium text-neutral-900">{m.name}</span>
+                      <span class="tabular-nums">{m.releaseDate}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+
+      <section
+        id="methodology"
+        class="scroll-mt-8 border-t border-neutral-200 py-12"
+      >
+        <h2 class="text-2xl font-bold tracking-tight">Methodology</h2>
+        <ol class="mt-4 list-decimal space-y-2 pl-5 text-sm text-neutral-600">
+          <li>
+            Model names and release dates are taken from Artificial Analysis
+            listings. Only LLMs are included.
+          </li>
+          <li>
+            Model number is the numeric version in the marketing name
+            (GPT-6.1 Sol → 6.1, Opus 5.5 → 5.5, Grok 4.7 → 4.7).
+          </li>
+          <li>Releases from the same provider are connected in date order.</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="border-t border-neutral-200">
+      <div
+        class="mx-auto flex max-w-5xl items-center justify-between px-6 py-6 text-sm text-neutral-500"
+      >
+        <span>© 2026 ModelNumber</span>
+        <span>Dates match Artificial Analysis · LLMs only</span>
+      </div>
+    </footer>
+  </body>
 </html>

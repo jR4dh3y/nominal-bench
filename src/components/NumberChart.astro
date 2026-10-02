@@ -1,0 +1,189 @@
+---
+import { PROVIDERS, PROVIDER_META } from "../data/models";
+
+const chips = PROVIDERS.map((p) => ({ id: p, ...PROVIDER_META[p] }));
+---
+
+<div class="w-full">
+  <div class="mb-4 flex flex-wrap items-center gap-2">
+    <div class="flex gap-3 text-xs font-medium text-neutral-500">
+      <button type="button" id="select-all" class="hover:text-black">
+        Select all
+      </button>
+      <button type="button" id="select-none" class="hover:text-black">
+        Clear
+      </button>
+    </div>
+    <div id="provider-chips" class="flex flex-wrap gap-2">
+      {
+        chips.map((c) => (
+          <button
+            type="button"
+            data-provider={c.label}
+            class="rounded-full border border-neutral-300 px-3 py-1 text-xs font-medium transition-opacity"
+            style={`color: ${c.color}`}
+          >
+            {c.label}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+  <div id="model-number-chart" class="h-[520px] w-full"></div>
+</div>
+
+<script>
+  import * as echarts from "echarts";
+  import { MODELS, PROVIDERS, PROVIDER_META, seriesFor } from "../data/models";
+
+  const DAY = 86_400_000;
+  const times = MODELS.map((m) => new Date(m.releaseDate).getTime());
+  // Pad the domain so edge-point labels don't clip against the container.
+  const xMin = Math.min(...times) - 12 * DAY;
+  const xMax = Math.max(...times) + 10 * DAY;
+  const numbers = MODELS.map((m) => m.modelNumber);
+  const yMin = Math.floor(Math.min(...numbers));
+  const yMax = Math.ceil(Math.max(...numbers) + 0.3);
+
+  interface HoverPoint {
+    seriesIndex: number;
+    data: { name: string; value: [string, number] };
+  }
+
+  const el = document.getElementById("model-number-chart");
+  const chipsEl = document.getElementById("provider-chips");
+  const selectAll = document.getElementById("select-all");
+  const selectNone = document.getElementById("select-none");
+  if (el && chipsEl && selectAll && selectNone) {
+    const chart = echarts.init(el);
+    const crosshair = (id: string) => ({
+      id,
+      type: "line",
+      data: [] as [number | string, number][],
+      symbol: "none",
+      silent: true,
+      // Stay fully visible while other series fade.
+      blur: { lineStyle: { opacity: 1 } },
+      lineStyle: { type: "dashed", color: "#555", width: 1.5 },
+    });
+    chart.setOption({
+      // Entrance stays instant; hover fade is driven by stateAnimation below.
+      animation: true,
+      animationDuration: 0,
+      animationDurationUpdate: 0,
+      stateAnimation: { duration: 300, easing: "cubicOut" },
+      grid: { left: 64, right: 48, top: 24, bottom: 64 },
+      xAxis: {
+        type: "time",
+        min: xMin,
+        max: xMax,
+        name: "Release date",
+        nameLocation: "middle",
+        nameGap: 40,
+        axisLine: { lineStyle: { color: "#111" } },
+        axisLabel: { hideOverlap: true },
+      },
+      yAxis: {
+        type: "value",
+        name: "Model number",
+        nameLocation: "middle",
+        nameGap: 48,
+        min: yMin,
+        max: yMax,
+        axisLine: { lineStyle: { color: "#111" } },
+      },
+      legend: { show: false },
+      series: [
+        ...PROVIDERS.map((provider) => ({
+          name: PROVIDER_META[provider].label,
+          type: "line",
+          color: PROVIDER_META[provider].color,
+          symbolSize: 7,
+          lineStyle: { width: 2 },
+          // Hovering a point isolates its series, like the DeepSWE chart.
+          emphasis: { focus: "series" },
+          label: {
+            show: true,
+            position: "top",
+            formatter: (p: { data: { name: string } }) => p.data.name,
+            fontSize: 11,
+            color: "#444",
+          },
+          emphasisLabel: {
+            show: true,
+            fontSize: 12,
+            color: "#111",
+            formatter: (p: HoverPoint["data"]) =>
+              `${p.name}: ${p.value[1].toFixed(1)}`,
+          },
+          data: seriesFor(provider).map((m) => ({
+            name: m.name,
+            value: [m.releaseDate, m.modelNumber] as [string, number],
+          })),
+        })),
+        crosshair("cross-h"),
+        crosshair("cross-v"),
+      ],
+    });
+
+    const labels = PROVIDERS.map((p) => PROVIDER_META[p].label);
+    const showCrosshair = (date: string, n: number) => {
+      chart.setOption({
+        series: [
+          { id: "cross-h", data: [[xMin, n], [date, n]] },
+          { id: "cross-v", data: [[date, n], [date, yMin]] },
+        ],
+      });
+    };
+    const hideCrosshair = () => {
+      chart.setOption({
+        series: [
+          { id: "cross-h", data: [] },
+          { id: "cross-v", data: [] },
+        ],
+      });
+    };
+    chart.on("mouseover", (raw) => {
+      const p = raw as unknown as HoverPoint;
+      if (typeof p.seriesIndex !== "number") return;
+      if (p.seriesIndex >= PROVIDERS.length) return;
+      showCrosshair(p.data.value[0], p.data.value[1]);
+    });
+    chart.on("mouseout", hideCrosshair);
+    chart.on("globalout", hideCrosshair);
+
+    const syncChips = () => {
+      const selected = (
+        chart.getOption().legend?.[0]?.selected as
+          | Record<string, boolean>
+          | undefined
+      );
+      chipsEl.querySelectorAll("button").forEach((btn) => {
+        const off = selected?.[btn.dataset.provider ?? ""] === false;
+        btn.classList.toggle("opacity-40", off);
+      });
+    };
+    chipsEl.querySelectorAll("button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        chart.dispatchAction({
+          type: "legendToggleSelect",
+          name: btn.dataset.provider,
+        });
+      });
+    });
+    selectAll.addEventListener("click", () => {
+      labels.forEach((name) =>
+        chart.dispatchAction({ type: "legendSelect", name }),
+      );
+      syncChips();
+    });
+    selectNone.addEventListener("click", () => {
+      labels.forEach((name) =>
+        chart.dispatchAction({ type: "legendUnSelect", name }),
+      );
+      syncChips();
+    });
+    chart.on("legendselectchanged", syncChips);
+    window.addEventListener("resize", () => chart.resize());
+  }
+</script>
