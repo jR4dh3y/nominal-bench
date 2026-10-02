@@ -72,6 +72,7 @@ export const MODELS: LlmModel[] = [
   { id: "mimo-v2-6-pro", name: "MiMo V2.6 Pro", provider: "xiaomi", releaseDate: "2026-09-21", modelNumber: 2.6 },
   { id: "opus-5-5", name: "Opus 5.5", provider: "anthropic", releaseDate: "2026-09-22", modelNumber: 5.5 },
   { id: "gpt-6-1-sol", name: "GPT-6.1 Sol", provider: "openai", releaseDate: "2026-09-29", modelNumber: 6.1 },
+  { id: "gemini-4-argon", name: "Gemini 4 Argon", provider: "google", releaseDate: "2026-09-30", modelNumber: 4.0 },
 ];
 
 export const MODELS_BY_DATE: LlmModel[] = [...MODELS].sort((a, b) =>
